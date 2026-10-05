@@ -1,0 +1,8 @@
+__pycache__/
+*.egg-info/
+.venv/
+
+# 実験ディレクトリの出力のうち大きいもの（設定・ログ・評価値の json / jsonl はコミットできる）
+results/**/*.pt
+results/**/*.npz
+results/**/*.png
