@@ -5,13 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lowlou"
 version = "0.1.0"
-description = "PINN による非線形フォースフリー磁場の再構成（Low & Lou 解でのテスト）"
-requires-python = ">=3.10"
 dependencies = ["numpy", "matplotlib", "torch"]
-
-[project.scripts]
-lowlou-check = "lowlou.metrics:main"
-lowlou-viz = "lowlou.viz:main"
 
 [tool.setuptools]
 packages = ["lowlou"]
