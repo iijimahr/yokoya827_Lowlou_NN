@@ -1,0 +1,10 @@
+__pycache__/
+*.egg-info/
+.venv/
+
+# 実験ディレクトリの出力
+results/**/*.pt
+results/**/*.npz
+results/**/*.png
+results/**/*.json
+results/**/*.jsonl
