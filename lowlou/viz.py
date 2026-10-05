@@ -47,7 +47,7 @@ def plot_slice(b, ref=None, z=0, y=None, symlog=False):
 
 def plot_loss(run_dirs):
     """各実験ディレクトリの log.jsonl（損失）と evals.jsonl（評価値）を重ねて描く。"""
-    top = [("ff", "force-free loss"), ("div", "div B loss"), ("bc", "bottom BC loss"), ("lr", "learning rate")]
+    top = [("loss", "total loss"), ("ff", "force-free loss"), ("div", "div B loss"), ("bc", "bottom BC loss")]
     bottom = [("E_n'", "E_n'  (1 = exact)"), ("C_CS", "C_CS  (1 = exact)"), ("sigma_J", "sigma_J  (0 = force-free)"),
               ("div_rel", "div_rel  (0 = div-free)")]
     fig, axes = plt.subplots(2, 4, figsize=(17, 8), constrained_layout=True)

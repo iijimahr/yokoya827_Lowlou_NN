@@ -23,6 +23,7 @@ div B = 0 を満たす 3 次元磁場を PINN で求める。Low & Lou の解析
 """
 import argparse
 import json
+import math
 import os
 import time
 
@@ -37,15 +38,20 @@ OUT = os.path.dirname(os.path.abspath(__file__))   # 出力先（このディレ
 
 # ---------------------------------------------------------------- 設定
 DATA = DEFAULT_DATA
-STEPS = 10000                        # 学習のステップ数（--steps で変えられる）
-EVAL_EVERY = 2500                    # このステップごとに評価してモデルを保存する
+STEPS = 1000                         # 学習のステップ数（--steps で変えられる）。1 ステップがベースラインの
+                                     # 約 10 倍かかるので、ベースラインの 1 万ステップとほぼ同じ時間になるようにした
+EVAL_EVERY = 250                     # このステップごとに評価してモデルを保存する
 DX, DY, DZ = 1.0, 1.0, 1.0           # 格子幅
 N_PDE = 24576                        # 内部の点の数（毎ステップ取り直す）
 N_BC = 2024                          # 下端の点の数（毎ステップ取り直す）
 W_FF, W_BC = 1.0, 10.0               # 損失の重み（div B の項はない）
 Z_RATIO = 10.0                       # 内部の点の密度比（下端 : 上端）
 EPS_PHYS = 0.1                       # フォースフリー項の分母に足す値（物理単位の B）
-LR, LR_MIN = 1e-3, 1e-5              # 学習率の最初と最後
+LR_MAX, LR_MIN = 1e-3, 1e-4          # 学習率の最大値と最小値（tanh 型で下げる。lr_at を参照）
+LR_T_HALF = 500                      # 学習率が最大値と最小値の中間になるステップ
+LR_T_WIDTH = 318                     # 学習率が変化するステップの幅
+# LR_T_HALF と LR_T_WIDTH は、1000 ステップの CosineAnnealing と中間点の位置・傾きが同じになるように決めた
+# （LR_T_HALF = 1000 / 2、LR_T_WIDTH = 1000 / π）
 WIDTH, DEPTH = 128, 5                # ネットワークの幅と層数
 OMEGA0 = 3.0                         # SIREN の ω0
 SEED = 1234
@@ -131,6 +137,11 @@ def predict_grid(model, shape, h):
     return torch.cat(out).reshape(nx, ny, nz, 3).cpu().numpy().astype(np.float64)
 
 
+def lr_at(step):
+    """学習率（tanh 型）。ステップ数だけで決まり、総ステップ数には依存しない。"""
+    return LR_MIN + (LR_MAX - LR_MIN) * 0.5 * (1.0 - math.tanh((step - LR_T_HALF) / LR_T_WIDTH))
+
+
 # ---------------------------------------------------------------- 学習
 def main():
     ap = argparse.ArgumentParser()
@@ -153,8 +164,8 @@ def main():
 
     bottom = Bottom(b0, h[0], h[1], B0, DEVICE)
     model = MLP(Lx, Ly, Lz).to(DEVICE)
-    opt = torch.optim.Adam(model.parameters(), lr=LR)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=steps, eta_min=LR_MIN)
+    opt = torch.optim.Adam(model.parameters(), lr=LR_MAX)
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda step: lr_at(step) / LR_MAX)
 
     # 鉛直方向の点の分布: 密度 ∝ (1 - a ζ)²（ζ = z/Lz）、下端:上端 = Z_RATIO:1。逆関数法で生成する
     a = 1.0 - 1.0 / np.sqrt(Z_RATIO)
